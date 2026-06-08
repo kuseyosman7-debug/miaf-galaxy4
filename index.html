@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mayav Love</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;height:100vh;font-family:Arial,sans-serif;background:#020006}
+canvas{position:fixed;inset:0}
+
+.page{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  transition:.7s;z-index:50;
+}
+.hide{opacity:0;pointer-events:none;transform:scale(1.08)}
+
+#questionPage{background:#ffdce5}
+.bear-box{width:230px;height:230px;background:white;display:flex;align-items:center;justify-content:center;margin-bottom:40px}
+.bear-box img{width:220px;height:220px;object-fit:contain}
+.question{font-size:48px;font-weight:900;color:#111;margin-bottom:35px}
+
+.btn{
+  border:none;padding:13px 28px;border-radius:28px;
+  background:#ff4f7d;color:white;font-size:18px;font-weight:bold;
+  cursor:pointer;box-shadow:0 8px 18px rgba(255,79,125,.45);
+  transition:.25s;
+}
+.btn:hover{transform:scale(1.08)}
+#yesBtn{position:absolute;left:42%;top:66%}
+#noBtn{position:absolute;left:57%;top:71%}
+
+#testPage{
+  background:linear-gradient(135deg,#ffdce5,#ffc1d6);
+  text-align:center;
+}
+.card{
+  background:white;
+  padding:35px;
+  border-radius:28px;
+  width:90%;
+  max-width:520px;
+  box-shadow:0 20px 50px rgba(255,70,130,.35);
+}
+.card h2{font-size:34px;margin-bottom:25px;color:#111}
+.answers{display:flex;flex-wrap:wrap;gap:15px;justify-content:center}
+.answer{
+  padding:13px 22px;border:none;border-radius:25px;
+  background:#ff5f8f;color:white;font-size:17px;font-weight:bold;
+  cursor:pointer;box-shadow:0 8px 16px rgba(255,95,143,.35);
+}
+.msg{margin-top:20px;color:#ff2b73;font-weight:900;font-size:20px;min-height:28px}
+
+.popup{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(.7);
+  padding:45px 35px 35px;min-width:350px;border-radius:25px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  backdrop-filter:blur(16px);
+  color:white;font-size:34px;font-weight:900;text-align:center;
+  text-shadow:0 0 20px #ff008c;
+  box-shadow:0 0 45px #ff008c;
+  opacity:0;pointer-events:none;transition:.35s;z-index:80;
+}
+.popup.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+.close-btn{position:absolute;top:10px;right:18px;font-size:30px;color:white;cursor:pointer}
+
+@media(max-width:600px){
+  .question{font-size:34px}
+  .bear-box{width:190px;height:190px}
+  .bear-box img{width:180px;height:180px}
+  #yesBtn{left:30%;top:66%}
+  #noBtn{left:58%;top:71%}
+  .card h2{font-size:26px}
+}
+</style>
+</head>
+
+<body>
+
+<section id="questionPage" class="page">
+  <div class="bear-box">
+    <img src="bear.gif" alt="bear gif">
+  </div>
+  <h1 class="question">Do you love me?</h1>
+  <button class="btn" id="yesBtn">Yes</button>
+  <button class="btn" id="noBtn">No</button>
+</section>
+
+<section id="testPage" class="page hide">
+  <div class="card">
+    <h2 id="testQuestion"></h2>
+    <div class="answers" id="answers"></div>
+    <div class="msg" id="testMsg"></div>
+  </div>
+</section>
+
+<canvas id="c"></canvas>
+
+<div class="popup" id="popup">
+  <span class="close-btn" onclick="closePopup()">✕</span>
+  <div id="popupText"></div>
+</div>
+
+<script>
+const questionPage=document.getElementById("questionPage");
+const testPage=document.getElementById("testPage");
+const yesBtn=document.getElementById("yesBtn");
+const noBtn=document.getElementById("noBtn");
+
+yesBtn.onclick=()=>{
+  questionPage.classList.add("hide");
+  testPage.classList.remove("hide");
+  loadQuestion();
+};
+
+function moveNo(){
+  noBtn.style.left=Math.random()*(innerWidth-100)+"px";
+  noBtn.style.top=Math.random()*(innerHeight-70)+"px";
+}
+noBtn.onmouseenter=moveNo;
+noBtn.ontouchstart=e=>{e.preventDefault();moveNo()};
+noBtn.onclick=e=>{e.preventDefault();moveNo()};
+
+const questions=[
+  {
+    q:"How much do you love Mayav?",
+    a:["1/10","5/10","10/10","∞ / 10"],
+    correct:"∞ / 10",
+    wrong:"لااا 😤 لازم تكون ∞ / 10"
+  },
+  {
+    q:"Who is the cutest?",
+    a:["Cat 🐱","Dog 🐶","Mayav ❤️","Bear 🐻"],
+    correct:"Mayav ❤️",
+    wrong:"غلط 😭 الجواب Mayav"
+  },
+  {
+    q:"What is your favorite thing?",
+    a:["Games","Food","Sleep","Mayav ❤️"],
+    correct:"Mayav ❤️",
+    wrong:"لا يا خائن 😤"
+  },
+  {
+    q:"Would you ever leave Mayav?",
+    a:["Yes","Never ❤️"],
+    correct:"Never ❤️",
+    wrong:"زر Yes ممنوع أصلاً 😂"
+  },
+  {
+    q:"Final question: Do you love Mayav?",
+    a:["No","YES YES YES ❤️"],
+    correct:"YES YES YES ❤️",
+    wrong:"No ما بينكبس 😈"
+  }
+];
+
+let qIndex=0;
+const testQuestion=document.getElementById("testQuestion");
+const answers=document.getElementById("answers");
+const testMsg=document.getElementById("testMsg");
+
+function loadQuestion(){
+  const q=questions[qIndex];
+  testQuestion.innerHTML=q.q;
+  answers.innerHTML="";
+  testMsg.innerHTML="";
+
+  q.a.forEach(txt=>{
+    const b=document.createElement("button");
+    b.className="answer";
+    b.innerHTML=txt;
+
+    if(txt==="Yes" || txt==="No"){
+      b.onmouseenter=()=>randomMove(b);
+      b.ontouchstart=e=>{e.preventDefault();randomMove(b)};
+    }
+
+    b.onclick=()=>{
+      if(txt===q.correct){
+        qIndex++;
+        if(qIndex>=questions.length){
+          testQuestion.innerHTML="🎉 Congratulations 🎉";
+          answers.innerHTML="";
+          testMsg.innerHTML="You officially love Mayav ❤️";
+          const enter=document.createElement("button");
+          enter.className="answer";
+          enter.innerHTML="Enter Love Galaxy 💜";
+          enter.onclick=()=>testPage.classList.add("hide");
+          answers.appendChild(enter);
+        }else{
+          loadQuestion();
+        }
+      }else{
+        testMsg.innerHTML=q.wrong;
+        randomMove(b);
+      }
+    };
+
+    answers.appendChild(b);
+  });
+}
+
+function randomMove(btn){
+  btn.style.position="fixed";
+  btn.style.left=Math.random()*(innerWidth-140)+"px";
+  btn.style.top=Math.random()*(innerHeight-70)+"px";
+  btn.style.zIndex=90;
+}
+
+const c=document.getElementById("c");
+const ctx=c.getContext("2d");
+const popup=document.getElementById("popup");
+const popupText=document.getElementById("popupText");
+
+let w,h,t=0,mouse={x:0,y:0},clickableWords=[];
+function resize(){w=c.width=innerWidth;h=c.height=innerHeight}
+resize();addEventListener("resize",resize);
+
+addEventListener("mousemove",e=>{
+  mouse.x=(e.clientX-w/2)*0.035;
+  mouse.y=(e.clientY-h/2)*0.035;
+});
+
+const loveWords=[
+  {word:"بحبك",msg:"بحبك مياف ❤️"},
+  {word:"أحبك",msg:"أحبك مياف ❤️"},
+  {word:"I LOVE YOU",msg:"I Love You Mayav ❤️"},
+  {word:"JE T'AIME",msg:"Je t'aime Mayav ❤️"},
+  {word:"TE AMO",msg:"Te Amo Mayav ❤️"},
+  {word:"TI AMO",msg:"Ti Amo Mayav ❤️"},
+  {word:"SENİ SEVİYORUM",msg:"Seni Seviyorum Mayav ❤️"},
+  {word:"Ez te hez dikim",msg:"Ez te hez dikim Mayav ❤️"},
+  {word:"خۆشم دەوێیت",msg:"خۆشم دەوێیت مياف ❤️"},
+  {word:"ICH LIEBE DICH",msg:"Ich liebe dich Mayav ❤️"},
+  {word:"Я люблю тебя",msg:"Я люблю тебя Mayav ❤️"},
+  {word:"愛してる",msg:"愛してる Mayav ❤️"},
+  {word:"사랑해",msg:"사랑해 Mayav ❤️"},
+  {word:"我爱你",msg:"我爱你 Mayav ❤️"}
+];
+
+const stars=Array.from({length:1100},()=>({
+  x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+  z:Math.random()*innerWidth,r:Math.random()*1.8+.3
+}));
+
+function heart(a,s){
+  let x=16*Math.sin(a)**3;
+  let y=-(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a));
+  return{x:x*s,y:y*s};
+}
+
+function draw(){
+  clickableWords=[];
+  let cx=w/2+mouse.x,cy=h/2+mouse.y;
+
+  let bg=ctx.createRadialGradient(cx,cy,0,cx,cy,w);
+  bg.addColorStop(0,"#4a0027");
+  bg.addColorStop(.42,"#100014");
+  bg.addColorStop(1,"#000");
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,w,h);
+
+  for(const s of stars){
+    s.z-=3.5;
+    if(s.z<1){s.z=w;s.x=Math.random()*w;s.y=Math.random()*h}
+    let k=230/s.z;
+    let x=(s.x-w/2)*k+w/2;
+    let y=(s.y-h/2)*k+h/2;
+    ctx.fillStyle=Math.random()>.75?"#fff":"#ff4fbd";
+    ctx.globalAlpha=.85;
+    ctx.beginPath();
+    ctx.arc(x,y,Math.max(.25,s.r*k),0,Math.PI*2);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha=1;
+  ctx.save();
+  ctx.translate(cx,cy-10);
+  ctx.shadowBlur=22;
+  ctx.shadowColor="#ff008c";
+
+  for(let layer=0;layer<28;layer++){
+    let scale=11.5-layer*.34;
+    let amount=38+layer*7;
+    for(let i=0;i<amount;i++){
+      let a=i/amount*Math.PI*2+t*.08+layer*.04;
+      let p=heart(a,scale);
+      ctx.globalAlpha=.25+layer/34;
+      ctx.fillStyle="#ff61c8";
+      ctx.font=`bold ${Math.max(7,12-layer*.1)}px Arial`;
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.fillText("مياف",p.x,p.y-125);
+    }
+  }
+
+  ctx.globalAlpha=1;
+
+  for(let i=0;i<5;i++){
+    ctx.strokeStyle=`rgba(255,0,150,${.85-i*.13})`;
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.ellipse(0,85+i*8,185+i*30,43+i*8,t*.45+i*.12,0,Math.PI*2);
+    ctx.stroke();
+  }
+
+  for(let i=0;i<loveWords.length;i++){
+    let item=loveWords[i];
+    let a=t*.7+i*Math.PI*2/loveWords.length;
+    let r=340,z=Math.sin(a)*r,x=Math.cos(a)*r,y=50+Math.sin(a*2)*35;
+    let scale=(z+310)/520;
+
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(scale,scale);
+    ctx.fillStyle="#ff75cf";
+    ctx.shadowBlur=24;
+    ctx.shadowColor="#ff008c";
+    ctx.font="bold 18px Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.fillText(item.word,0,0);
+
+    let textWidth=ctx.measureText(item.word).width*scale;
+    clickableWords.push({x:cx+x,y:cy-10+y,w:textWidth+35,h:40,msg:item.msg});
+    ctx.restore();
+  }
+
+  ctx.restore();
+  t+=.018;
+  requestAnimationFrame(draw);
+}
+
+c.addEventListener("click",e=>{
+  for(const item of clickableWords){
+    if(e.clientX>item.x-item.w/2&&e.clientX<item.x+item.w/2&&e.clientY>item.y-item.h/2&&e.clientY<item.y+item.h/2){
+      popupText.innerHTML=item.msg;
+      popup.classList.add("show");
+    }
+  }
+});
+
+function closePopup(){popup.classList.remove("show")}
+draw();
+</script>
+</body>
+</html>
